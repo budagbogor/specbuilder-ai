@@ -1,7 +1,33 @@
 import "server-only";
 import OpenAI from "openai";
 
-const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-5.2";
+const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || "gpt-5.2";
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return fallback;
+  }
+
+  return parsedValue;
+}
+
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+    return fallback;
+  }
+
+  return parsedValue;
+}
+
+const DEFAULT_TIMEOUT_MS = parsePositiveInt(process.env.OPENAI_TIMEOUT_MS, 45_000);
+const DEFAULT_MAX_RETRIES = parseNonNegativeInt(
+  process.env.OPENAI_MAX_RETRIES,
+  2,
+);
 
 const globalForOpenAI = globalThis as unknown as {
   openaiClient?: OpenAI;
@@ -23,6 +49,8 @@ export function getOpenAIClient() {
   if (!globalForOpenAI.openaiClient) {
     globalForOpenAI.openaiClient = new OpenAI({
       apiKey: getOpenAIApiKey(),
+      timeout: DEFAULT_TIMEOUT_MS,
+      maxRetries: DEFAULT_MAX_RETRIES,
     });
   }
 
@@ -35,6 +63,8 @@ export type CallOpenAIModelParams = {
   model?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  timeoutMs?: number;
+  maxRetries?: number;
 };
 
 export type CallOpenAIModelResult = {
@@ -58,6 +88,9 @@ export async function callOpenAIModel(
       instructions: params.instructions,
       temperature: params.temperature,
       max_output_tokens: params.maxOutputTokens,
+    }, {
+      timeout: params.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      maxRetries: params.maxRetries ?? DEFAULT_MAX_RETRIES,
     });
 
     return {

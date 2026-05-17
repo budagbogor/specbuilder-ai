@@ -94,6 +94,12 @@ Copy-Item .env.example .env
 DATABASE_URL="file:./dev.db"
 OPENAI_API_KEY="your-openai-api-key"
 OPENAI_MODEL="gpt-5.2"
+OPENAI_TIMEOUT_MS="45000"
+OPENAI_MAX_RETRIES="2"
+AI_ANALYZE_RATE_LIMIT="12"
+AI_ANALYZE_RATE_LIMIT_WINDOW_MS="60000"
+AI_GENERATE_RATE_LIMIT="6"
+AI_GENERATE_RATE_LIMIT_WINDOW_MS="60000"
 ```
 
 Catatan:
@@ -172,6 +178,10 @@ ZIP dibuat menggunakan JSZip dari state edit terakhir user.
 - `GET /api/projects`
 - `GET /api/projects/[id]`
 - `PUT /api/projects/[id]`
+
+Format response:
+- sukses: `{ success: true, data, meta? }`
+- gagal: `{ success: false, error: { code, message, details? } }`
 
 ## Troubleshooting
 

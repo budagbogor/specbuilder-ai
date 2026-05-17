@@ -1,126 +1,54 @@
-import { NextResponse } from "next/server";
-import { Prisma } from "@/generated/prisma/client";
-import { generateDocuments } from "@/lib/generators/generateDocuments";
-import { prisma } from "@/lib/prisma";
-import { intakeSchema } from "@/lib/validators/intakeSchema";
+import { AppError, errorResponse, successResponse } from "@/lib/api/http";
+import {
+  generateProject,
+  parseGenerateProjectInput,
+} from "@/lib/services/generateProjectService";
+import {
+  enforceRateLimit,
+  resolveRateLimitKey,
+} from "@/lib/services/rateLimitService";
 
-type GenerateRequestBody = {
-  intake?: unknown;
-  clarificationQuestions?: unknown;
-  clarificationAnswers?: unknown;
-};
-
-function toSafeJson(value: unknown): unknown {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const serialized = JSON.stringify(value);
-  if (serialized === undefined) {
-    return undefined;
-  }
-
-  return JSON.parse(serialized) as unknown;
-}
-
-function toRequiredJsonInput(value: unknown): Prisma.InputJsonValue {
-  const normalized = toSafeJson(value);
-  if (normalized === undefined || normalized === null) {
-    return {} as Prisma.InputJsonValue;
-  }
-
-  return normalized as Prisma.InputJsonValue;
-}
-
-function toNullableJsonInput(
-  value: unknown,
-): Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue | undefined {
-  const normalized = toSafeJson(value);
-
-  if (normalized === undefined) {
-    return undefined;
-  }
-
-  if (normalized === null) {
-    return Prisma.JsonNull;
-  }
-
-  return normalized as Prisma.InputJsonValue;
-}
+const GENERATE_RATE_LIMIT = Number(process.env.AI_GENERATE_RATE_LIMIT ?? 6);
+const GENERATE_RATE_LIMIT_WINDOW_MS = Number(
+  process.env.AI_GENERATE_RATE_LIMIT_WINDOW_MS ?? 60_000,
+);
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as GenerateRequestBody;
-    const intakeValidation = intakeSchema.safeParse(body.intake);
+    enforceRateLimit({
+      key: resolveRateLimitKey(request, "generate"),
+      limit: Number.isFinite(GENERATE_RATE_LIMIT) ? GENERATE_RATE_LIMIT : 6,
+      windowMs: Number.isFinite(GENERATE_RATE_LIMIT_WINDOW_MS)
+        ? GENERATE_RATE_LIMIT_WINDOW_MS
+        : 60_000,
+    });
 
-    if (!intakeValidation.success) {
-      const fieldErrors = intakeValidation.error.flatten().fieldErrors;
-      const firstError =
-        Object.values(fieldErrors).flat().find((message) => Boolean(message)) ??
-        "Invalid intake payload.";
+    const body = (await request.json().catch(() => {
+      throw new AppError({
+        code: "INVALID_JSON",
+        message: "Invalid JSON body.",
+        status: 400,
+      });
+    })) as {
+      intake?: unknown;
+      clarificationQuestions?: unknown;
+      clarificationAnswers?: unknown;
+    };
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: firstError,
-        },
-        { status: 400 },
-      );
-    }
-
-    const intake = intakeValidation.data;
-
-    const generated = await generateDocuments({
-      intake,
+    const parsedInput = parseGenerateProjectInput({
+      intake: body.intake,
       clarificationQuestions: body.clarificationQuestions,
       clarificationAnswers: body.clarificationAnswers,
     });
 
-    const clarificationQuestionsJson = toNullableJsonInput(body.clarificationQuestions);
-    const clarificationAnswersJson = toNullableJsonInput(body.clarificationAnswers);
+    const result = await generateProject(parsedInput);
 
-    const project = await prisma.project.create({
-      data: {
-        name: intake.projectName,
-        type: intake.projectType,
-        description: intake.projectDescription,
-        intakeJson: toRequiredJsonInput(intake),
-        ...(clarificationQuestionsJson !== undefined
-          ? { clarificationQuestions: clarificationQuestionsJson }
-          : {}),
-        ...(clarificationAnswersJson !== undefined
-          ? { clarificationAnswers: clarificationAnswersJson }
-          : {}),
-        brd: generated.brd,
-        prd: generated.prd,
-        srs: generated.srs,
-        agent: generated.agent,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        projectId: project.id,
-        brd: generated.brd,
-        prd: generated.prd,
-        srs: generated.srs,
-        agent: generated.agent,
-      },
+    return successResponse(result, {
+      status: 201,
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unexpected error while generating documents.";
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: errorMessage,
-      },
-      { status: 500 },
-    );
+    return errorResponse(error, {
+      message: "Unexpected error while generating documents.",
+    });
   }
 }

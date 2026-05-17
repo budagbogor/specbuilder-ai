@@ -54,10 +54,23 @@ type ApiSuccess<T> = {
 
 type ApiError = {
   success: false;
-  error: string;
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
 };
 
 type ApiResponse<T> = ApiSuccess<T> | ApiError;
+
+function resolveApiErrorMessage<T>(payload: ApiResponse<T>, fallbackMessage: string): string {
+  if (payload.success) {
+    return fallbackMessage;
+  }
+
+  const message = payload.error.message?.trim();
+  return message && message.length > 0 ? message : fallbackMessage;
+}
 
 type HistoryClientProps = {
   initialProjects: ProjectsListItem[];
@@ -138,7 +151,7 @@ export function HistoryClient({
       const result = (await response.json()) as ApiResponse<ProjectDetail>;
 
       if (!response.ok || !result.success) {
-        const message = result.success ? "Failed to fetch project detail." : result.error;
+        const message = resolveApiErrorMessage(result, "Failed to fetch project detail.");
         throw new Error(message);
       }
 
@@ -168,7 +181,7 @@ export function HistoryClient({
       const result = (await response.json()) as ApiResponse<ProjectsListItem[]>;
 
       if (!response.ok || !result.success) {
-        const message = result.success ? "Failed to fetch project list." : result.error;
+        const message = resolveApiErrorMessage(result, "Failed to fetch project list.");
         throw new Error(message);
       }
 
@@ -226,7 +239,7 @@ export function HistoryClient({
       const result = (await response.json()) as ApiResponse<ProjectDetail>;
 
       if (!response.ok || !result.success) {
-        const message = result.success ? "Failed to update documents." : result.error;
+        const message = resolveApiErrorMessage(result, "Failed to update documents.");
         throw new Error(message);
       }
 

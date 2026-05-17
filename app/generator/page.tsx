@@ -45,10 +45,23 @@ type ApiSuccess<T> = {
 
 type ApiError = {
   success: false;
-  error: string;
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
 };
 
 type ApiResponse<T> = ApiSuccess<T> | ApiError;
+
+function resolveApiErrorMessage<T>(payload: ApiResponse<T>, fallbackMessage: string): string {
+  if (payload.success) {
+    return fallbackMessage;
+  }
+
+  const message = payload.error.message?.trim();
+  return message && message.length > 0 ? message : fallbackMessage;
+}
 
 type GeneratorPhase = "intake" | "clarification" | "documents";
 
@@ -138,9 +151,10 @@ export default function GeneratorPage() {
       const payload = (await response.json()) as ApiResponse<AnalyzeIntakeResponseData>;
 
       if (!response.ok || !payload.success) {
-        const message = payload.success
-          ? "Analyze intake gagal diproses."
-          : payload.error;
+        const message = resolveApiErrorMessage(
+          payload,
+          "Analyze intake gagal diproses.",
+        );
         throw new Error(message);
       }
 
@@ -204,7 +218,7 @@ export default function GeneratorPage() {
 
       const payload = (await response.json()) as ApiResponse<GenerateResponseData>;
       if (!response.ok || !payload.success) {
-        const message = payload.success ? "Generate documents gagal." : payload.error;
+        const message = resolveApiErrorMessage(payload, "Generate documents gagal.");
         throw new Error(message);
       }
 
