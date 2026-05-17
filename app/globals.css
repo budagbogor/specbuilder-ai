@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --font-app-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --font-app-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+  --background: oklch(0.985 0.005 250);
+  --foreground: oklch(0.22 0.03 264);
+  --card: oklch(0.998 0.003 250);
+  --card-foreground: oklch(0.22 0.03 264);
+  --primary: oklch(0.56 0.16 256);
+  --primary-foreground: oklch(0.98 0.006 250);
+  --secondary: oklch(0.95 0.02 244);
+  --secondary-foreground: oklch(0.31 0.06 258);
+  --muted: oklch(0.96 0.01 252);
+  --muted-foreground: oklch(0.5 0.03 260);
+  --accent: oklch(0.94 0.035 173);
+  --accent-foreground: oklch(0.29 0.05 173);
+  --border: oklch(0.89 0.014 255);
+  --ring: oklch(0.6 0.17 257);
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --font-sans: var(--font-app-sans);
+  --font-mono: var(--font-app-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-app-sans);
+  text-rendering: optimizeLegibility;
+}
