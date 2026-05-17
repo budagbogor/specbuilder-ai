@@ -96,7 +96,7 @@ export function WizardStep({
                   className={cn(
                     "min-h-[120px]",
                     error &&
-                      "border-red-400 bg-red-50/50 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      "border-red-400 bg-red-50/50 focus-visible:border-red-500 focus-visible:ring-red-200 dark:border-red-700 dark:bg-red-950/30 dark:focus-visible:border-red-600 dark:focus-visible:ring-red-800",
                   )}
                 />
               ) : (
@@ -111,7 +111,7 @@ export function WizardStep({
                   aria-invalid={Boolean(error)}
                   className={cn(
                     error &&
-                      "border-red-400 bg-red-50/50 focus-visible:border-red-500 focus-visible:ring-red-200",
+                      "border-red-400 bg-red-50/50 focus-visible:border-red-500 focus-visible:ring-red-200 dark:border-red-700 dark:bg-red-950/30 dark:focus-visible:border-red-600 dark:focus-visible:ring-red-800",
                   )}
                 />
               )}

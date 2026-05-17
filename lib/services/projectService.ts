@@ -183,3 +183,22 @@ export async function updateProjectDocuments(params: {
 
   return mapToProjectDetail(updatedProject);
 }
+
+export async function deleteProject(id: string): Promise<void> {
+  const existingProject = await prisma.project.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!existingProject) {
+    throw new AppError({
+      code: "PROJECT_NOT_FOUND",
+      message: "Project not found.",
+      status: 404,
+    });
+  }
+
+  await prisma.project.delete({
+    where: { id },
+  });
+}

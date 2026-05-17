@@ -42,15 +42,17 @@ function createToastId() {
 function variantStyles(variant: ToastVariant) {
   if (variant === "success") {
     return {
-      container: "border-emerald-300/80 bg-emerald-50/95 text-emerald-900",
-      icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
+      container:
+        "border-emerald-300/80 bg-emerald-50/95 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-950/90 dark:text-emerald-200",
+      icon: <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />,
     };
   }
 
   if (variant === "error") {
     return {
-      container: "border-red-300/80 bg-red-50/95 text-red-900",
-      icon: <AlertCircle className="h-4 w-4 text-red-600" />,
+      container:
+        "border-red-300/80 bg-red-50/95 text-red-900 dark:border-red-700/60 dark:bg-red-950/90 dark:text-red-200",
+      icon: <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />,
     };
   }
 

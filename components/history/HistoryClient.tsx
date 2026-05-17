@@ -8,11 +8,14 @@ import {
   Loader2,
   RefreshCcw,
   Save,
+  Search,
+  Trash2,
 } from "lucide-react";
 import { DocumentTabs, type DocumentState } from "@/components/documents/DocumentTabs";
 import { DownloadButtons } from "@/components/documents/DownloadButtons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -138,6 +141,23 @@ export function HistoryClient({
   const [isSavingDocuments, setIsSavingDocuments] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+
+  const filteredProjects = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return projects;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return projects.filter(
+      (project) =>
+        project.name.toLowerCase().includes(query) ||
+        project.type.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query),
+    );
+  }, [projects, searchQuery]);
+
   const loadProjectDetail = async (projectId: string) => {
     try {
       setIsLoadingDetail(true);
@@ -219,6 +239,52 @@ export function HistoryClient({
     await loadProjectDetail(projectId);
   };
 
+  const deleteProjectById = async (projectId: string) => {
+    if (isDeletingProject) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Apakah Anda yakin ingin menghapus project ini? Aksi ini tidak bisa dibatalkan.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsDeletingProject(true);
+
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      });
+      const result = (await response.json()) as ApiResponse<{ deleted: boolean }>;
+
+      if (!response.ok || !result.success) {
+        const message = resolveApiErrorMessage(result, "Failed to delete project.");
+        throw new Error(message);
+      }
+
+      const remainingProjects = projects.filter((p) => p.id !== projectId);
+      setProjects(remainingProjects);
+
+      if (selectedProjectId === projectId) {
+        if (remainingProjects.length > 0) {
+          await loadProjectDetail(remainingProjects[0].id);
+        } else {
+          setSelectedProjectId(null);
+          setProjectDetail(null);
+          setEditedDocuments(null);
+        }
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unexpected error while deleting project.";
+      setProjectsError(message);
+    } finally {
+      setIsDeletingProject(false);
+    }
+  };
+
   const saveDocuments = async () => {
     if (!selectedProjectId || !editedDocuments) {
       return;
@@ -282,7 +348,7 @@ export function HistoryClient({
 
   return (
     <div className="space-y-6 pb-6">
-      <header className="space-y-3">
+      <header className="animate-fade-in-up space-y-3">
         <Badge variant="secondary">Project History</Badge>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Saved Specifications
@@ -294,7 +360,7 @@ export function HistoryClient({
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-        <Card className="h-fit">
+        <Card className="animate-fade-in-up delay-100 h-fit">
           <CardHeader className="border-b border-border/70">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="flex items-center gap-2">
@@ -318,48 +384,82 @@ export function HistoryClient({
             <CardDescription>Daftar project yang sudah disimpan.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 pt-5">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Cari project..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                className="pl-9 text-sm"
+              />
+            </div>
+
             {projectsError ? (
-              <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
                 {projectsError}
               </p>
             ) : null}
 
-            {!isLoadingProjects && projects.length === 0 ? (
+            {!isLoadingProjects && filteredProjects.length === 0 ? (
               <p className="rounded-lg border border-border/70 bg-background/75 px-3 py-2 text-sm text-muted-foreground">
-                Belum ada project tersimpan.
+                {searchQuery.trim()
+                  ? "Tidak ada project yang cocok dengan pencarian."
+                  : "Belum ada project tersimpan."}
               </p>
             ) : null}
 
-            {projects.map((project) => {
-              const isActive = project.id === selectedProjectId;
-              return (
-                <button
-                  key={project.id}
-                  type="button"
-                  onClick={() => void openProject(project.id)}
-                  className={cn(
-                    "w-full rounded-xl border p-3 text-left transition-colors",
-                    isActive
-                      ? "border-primary/70 bg-primary/10"
-                      : "border-border/70 bg-card/70 hover:bg-accent/40",
-                  )}
-                >
-                  <p className="line-clamp-1 text-sm font-semibold">{project.name}</p>
-                  <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                    {project.type}
-                  </p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Updated: {formatDate(project.updatedAt)}
-                  </p>
-                </button>
-              );
-            })}
+            <div className="max-h-[480px] space-y-2 overflow-auto">
+              {filteredProjects.map((project) => {
+                const isActive = project.id === selectedProjectId;
+                return (
+                  <div
+                    key={project.id}
+                    className={cn(
+                      "group relative rounded-xl border p-3 transition-all duration-200",
+                      isActive
+                        ? "border-primary/70 bg-primary/10"
+                        : "border-border/70 bg-card/70 hover:bg-accent/40 hover:border-border",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => void openProject(project.id)}
+                      className="w-full text-left"
+                    >
+                      <p className="line-clamp-1 text-sm font-semibold">{project.name}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                        {project.type}
+                      </p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Updated: {formatDate(project.updatedAt)}
+                      </p>
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void deleteProjectById(project.id);
+                      }}
+                      disabled={isDeletingProject}
+                      title="Hapus project"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 
         <div className="space-y-5">
           {isLoadingDetail ? (
-            <Card>
+            <Card className="animate-fade-in">
               <CardContent className="flex items-center gap-2 pt-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Memuat detail project...
@@ -369,7 +469,7 @@ export function HistoryClient({
 
           {!isLoadingDetail && detailError ? (
             <Card>
-              <CardContent className="pt-6 text-sm text-red-700">{detailError}</CardContent>
+              <CardContent className="pt-6 text-sm text-red-700 dark:text-red-400">{detailError}</CardContent>
             </Card>
           ) : null}
 
@@ -383,7 +483,7 @@ export function HistoryClient({
 
           {projectDetail ? (
             <>
-              <Card>
+              <Card className="animate-slide-in-right">
                 <CardHeader className="border-b border-border/70">
                   <CardTitle className="flex items-center gap-2">
                     <Database className="h-5 w-5 text-primary" />
@@ -470,8 +570,8 @@ export function HistoryClient({
                       className={cn(
                         "rounded-lg px-3 py-2 text-sm",
                         saveStatus.startsWith("Gagal")
-                          ? "border border-red-300 bg-red-50 text-red-700"
-                          : "border border-emerald-300 bg-emerald-50 text-emerald-700",
+                          ? "border border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
+                          : "border border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400",
                       )}
                     >
                       {saveStatus}

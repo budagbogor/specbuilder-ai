@@ -1,5 +1,6 @@
 import { AppError, errorResponse, successResponse } from "@/lib/api/http";
 import {
+  deleteProject,
   getProjectDetailById,
   parseUpdateDocumentsPayload,
   updateProjectDocuments,
@@ -43,6 +44,18 @@ export async function PUT(request: Request, context: RouteContext) {
   } catch (error) {
     return errorResponse(error, {
       message: "Failed to update project documents.",
+    });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    await deleteProject(id);
+    return successResponse({ deleted: true });
+  } catch (error) {
+    return errorResponse(error, {
+      message: "Failed to delete project.",
     });
   }
 }

@@ -298,7 +298,7 @@ export default function GeneratorPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <header className="space-y-3">
+      <header className="animate-fade-in-up space-y-3">
         <Badge variant="secondary">Generator Workspace</Badge>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Spec Generator
@@ -431,7 +431,7 @@ export default function GeneratorPage() {
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
               {generateError ? (
-                <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
                   {generateError}
                 </div>
               ) : null}

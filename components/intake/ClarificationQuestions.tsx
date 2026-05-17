@@ -250,13 +250,13 @@ export function ClarificationQuestions({
           </section>
 
           {generateError ? (
-            <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
               {generateError}
             </div>
           ) : null}
 
           {actionError ? (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/50 dark:text-amber-300">
               {actionError}
             </div>
           ) : null}
